@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: glamourbook-backend
+    runtime: php
+    buildCommand: composer install --no-dev --optimize-autoloader
+    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        fromDatabase: mysql
+      - key: DB_PORT
+        fromDatabase: mysql
+      - key: DB_DATABASE
+        fromDatabase: mysql
+      - key: DB_USERNAME
+        fromDatabase: mysql
+      - key: DB_PASSWORD
+        fromDatabase: mysql
+      - key: JWT_SECRET
+        generateValue: true
+    databases:
+      - type: mysql
+        name: salon_db

@@ -73,22 +73,92 @@ A full-stack salon booking application built with Laravel and React. This projec
    npm run build
    ```
 
-## Deployment Recommendations
+## Deployment Instructions
 
-- Host the React frontend on **Netlify** (root `netlify.toml` included for frontend deployment)
-- Host the Laravel backend on **Railway.app** or **Render**
-- Use **MySQL** on Railway or **PlanetScale** for production database
-- Update frontend API base URL to the deployed backend endpoint
+### Frontend (React) - Netlify
 
-### Netlify and API Environment
+1. **Connect Repository:**
+   - Go to [netlify.com](https://netlify.com) and sign in
+   - Click "Add new site" → "Import an existing project"
+   - Connect your GitHub account and select `vinod21-hoop/glamourbook--salon`
 
-When deploying the frontend to Netlify, set the environment variable:
+2. **Build Settings:**
+   - **Base directory:** `frontend`
+   - **Build command:** `npm install && npm run build`
+   - **Publish directory:** `dist`
 
-```text
-VITE_API_URL=https://your-backend-domain.com/api
-```
+3. **Environment Variables:**
+   - Add: `VITE_API_URL=https://your-backend-domain.com/api`
+   - (You'll update this once backend is deployed)
 
-This ensures the frontend calls the deployed Laravel API instead of `localhost`.
+4. **Deploy:** Click "Deploy site"
+
+### Backend (Laravel) - Railway.app (Recommended)
+
+1. **Create Railway Account:**
+   - Go to [railway.app](https://railway.app) and sign in
+
+2. **Deploy from GitHub:**
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Select `vinod21-hoop/glamourbook--salon`
+   - Railway will auto-detect Laravel and create MySQL database
+
+3. **Environment Variables:**
+   ```
+   APP_ENV=production
+   APP_KEY=<generate-new-key>
+   APP_DEBUG=false
+   APP_URL=https://your-railway-domain.up.railway.app
+   DB_CONNECTION=mysql
+   DB_HOST=<auto-provided>
+   DB_PORT=<auto-provided>
+   DB_DATABASE=<auto-provided>
+   DB_USERNAME=<auto-provided>
+   DB_PASSWORD=<auto-provided>
+   JWT_SECRET=<generate-new-secret>
+   RAZORPAY_KEY=rzp_test_SafrqbrZ6o314C
+   RAZORPAY_SECRET=RxdTZfd6N8onhs3PgAGkqWe5
+   FRONTEND_URL=https://your-netlify-domain.netlify.app
+   ```
+
+4. **Run Migrations:**
+   - In Railway dashboard, go to your app → "Variables" tab
+   - Add: `RAILWAY_RUN_MIGRATIONS=true`
+   - Or run manually: `php artisan migrate --force`
+
+5. **Storage Link:**
+   - Add environment variable: `RAILWAY_RUN_STORAGE_LINK=true`
+   - Or Railway will auto-run `php artisan storage:link`
+
+### Alternative: Backend on Render
+
+1. **Create Render Account:**
+   - Go to [render.com](https://render.com) and sign in
+
+2. **Create Web Service:**
+   - Click "New" → "Web Service"
+   - Connect GitHub repo: `vinod21-hoop/glamourbook--salon`
+   - **Root Directory:** `backend`
+   - **Runtime:** PHP
+   - **Build Command:** `composer install --no-dev --optimize-autoloader`
+   - **Start Command:** `php artisan serve --host=0.0.0.0 --port=$PORT`
+
+3. **Create MySQL Database:**
+   - On Render, create a new MySQL database
+   - Copy the connection details
+
+4. **Environment Variables:** (Same as Railway above, but use Render's DB details)
+
+### Final Steps
+
+1. **Update Frontend Environment:**
+   - In Netlify, update `VITE_API_URL` to your backend URL
+   - Redeploy frontend
+
+2. **Test the Application:**
+   - Frontend should load and connect to backend
+   - Try creating a staff member and uploading avatar
+   - Test booking flow
 
 ## Notes
 
