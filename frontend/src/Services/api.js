@@ -34,7 +34,7 @@ api.interceptors.response.use(
       window.location.href = '/login';
       toast.error('Session expired. Please login again.');
     } else if (error.response?.status === 403) {
-      toast.error('Access denied');
+      toast.error(message);
     } else if (error.response?.status === 422) {
       // Validation errors
       const errors = error.response?.data?.errors;
@@ -68,11 +68,14 @@ export const serviceAPI = {
   getById: (id) => api.get(`/services/${id}`),
   getReviews: (id) => api.get(`/services/${id}/reviews`),
 };
-
+// ─── STAFF APIs ─────────────────────────────────
+export const staffAPI = {
+    getAll: () => api.get('/staff'),
+};
 // ─── BOOKING APIs ───────────────────────────────
 
 export const bookingAPI = {
-  getAvailableDates: () => api.get('/booking/available-dates'),
+  getAvailableDates: (params) => api.get('/booking/available-dates', { params }),
   getAvailableSlots: (params) => api.get('/booking/available-slots', { params }),
   calculatePrice: (data) => api.post('/booking/calculate-price', data),
   create: (data) => api.post('/booking', data),
@@ -80,7 +83,6 @@ export const bookingAPI = {
   getBooking: (id) => api.get(`/my-bookings/${id}`),
   cancel: (id, reason) => api.post(`/my-bookings/${id}/cancel`, { reason }),
 };
-
 // ─── QUEUE APIs ─────────────────────────────────
 
 export const queueAPI = {
@@ -88,13 +90,13 @@ export const queueAPI = {
   myStatus: (bookingId) => api.get(`/queue/my-status/${bookingId}`),
 };
 
-// ─── PAYMENT APIs ───────────────────────────────
+// ─── PAYMENT APIs ─────────────────────────────────
 
 export const paymentAPI = {
   createOrder: (bookingId) => api.post(`/payment/create-order/${bookingId}`),
   verify: (data) => api.post('/payment/verify', data),
+  chooseCash: (bookingId) => api.post(`/payment/cash/${bookingId}`),
 };
-
 // ─── REVIEW APIs ────────────────────────────────
 
 export const reviewAPI = {
@@ -128,7 +130,9 @@ export const adminAPI = {
   createService: (data) => api.post('/admin/services', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  updateService: (id, data) => api.put(`/admin/services/${id}`, data),
+  updateService: (id, data) => api.post(`/admin/services/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+}),
   deleteService: (id) => api.delete(`/admin/services/${id}`),
   toggleService: (id) => api.patch(`/admin/services/${id}/toggle`),
 
@@ -163,8 +167,12 @@ export const adminAPI = {
 
   // Staff
   getStaff: () => api.get('/admin/staff'),
-  createStaff: (data) => api.post('/admin/staff', data),
-  updateStaff: (id, data) => api.put(`/admin/staff/${id}`, data),
+  createStaff: (data) => api.post('/admin/staff', data, {
+    headers: { 'Content-Type': undefined },
+  }),
+  updateStaff: (id, data) => api.put(`/admin/staff/${id}`, data, {
+    headers: { 'Content-Type': undefined },
+  }),
   deleteStaff: (id) => api.delete(`/admin/staff/${id}`),
 
   // Coupons
@@ -174,5 +182,14 @@ export const adminAPI = {
   deleteCoupon: (id) => api.delete(`/admin/coupons/${id}`),
   toggleCoupon: (id) => api.patch(`/admin/coupons/${id}/toggle`),
 };
+// ─── STAFF PORTAL APIs ────────────────────────────
 
+export const staffPortalAPI = {
+  dashboard: () => api.get('/staff/dashboard'),
+  mySchedule: (date) => api.get('/staff/my-schedule', { params: { date } }),
+  todayBookings: () => api.get('/staff/today-bookings'),
+  collectCash: (bookingId) => api.post(`/staff/collect-cash/${bookingId}`),
+  startService: (bookingId) => api.post(`/staff/start-service/${bookingId}`),
+  completeService: (bookingId) => api.post(`/staff/complete-service/${bookingId}`),
+};
 export default api;

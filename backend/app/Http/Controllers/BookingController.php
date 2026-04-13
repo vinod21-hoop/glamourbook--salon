@@ -20,18 +20,20 @@ class BookingController extends Controller
         private QueueService $queueService,
     ) {}
 
-    /**
-     * Get available dates
-     */
-    public function availableDates(): JsonResponse
-    {
-        $dates = $this->slotService->getAvailableDates();
+   /**
+ * Get available dates
+ */
+public function availableDates(Request $request): JsonResponse
+{
+    $staffId = $request->query('staff_id');
+    
+    $dates = $this->slotService->getAvailableDates(30, $staffId ? (int) $staffId : null);
 
-        return response()->json([
-            'success' => true,
-            'data'    => $dates,
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'data'    => $dates,
+    ]);
+}
 
     /**
      * Get available slots for a date

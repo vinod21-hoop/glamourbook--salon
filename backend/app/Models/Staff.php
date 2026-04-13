@@ -1,23 +1,23 @@
 <?php
-// app/Models/Staff.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Staff extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $table = 'staff';
 
     protected $fillable = [
         'name',
-        'phone',
         'email',
+        'phone',
         'specialization',
+        'experience',
         'avatar',
         'is_active',
         'max_daily_bookings',
@@ -27,43 +27,48 @@ class Staff extends Model
         'is_active' => 'boolean',
     ];
 
-    // ── Relationships ────────────────────────────────
+    protected $appends = ['avatar_url'];
 
-    public function services()
+    /**
+     * Get avatar URL
+     */
+    public function getAvatarUrlAttribute(): ?string
     {
-        return $this->belongsToMany(Service::class, 'service_staff');
+        if ($this->avatar) {
+            return Storage::disk('public')->url($this->avatar);
+        }
+        return null;
     }
 
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
-
-    public function slots()
-    {
-        return $this->hasMany(Slot::class);
-    }
-
-    // ── Scopes ───────────────────────────────────────
-
+    /**
+     * Scope: Active staff only
+     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    // ── Helpers ──────────────────────────────────────
-
-    public function todayBookingsCount(): int
+    /**
+     * Relationship: Staff has many services
+     */
+    public function services()
     {
-        return $this->bookings()
-            ->whereDate('date', today())
-            ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->count();
+        return $this->belongsToMany(Service::class, 'service_staff');
     }
 
-    public function isAvailableToday(): bool
+    /**
+     * Relationship: Staff has many bookings
+     */
+    public function bookings()
     {
-        return $this->is_active
-            && $this->todayBookingsCount() < $this->max_daily_bookings;
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Get linked user account
+     */
+    public function user()
+    {
+        return User::where('email', $this->email)->first();
     }
 }

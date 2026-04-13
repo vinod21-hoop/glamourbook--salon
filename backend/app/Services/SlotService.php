@@ -133,44 +133,49 @@ class SlotService
     }
 
     /**
-     * Get available dates for next N days
-     */
-    public function getAvailableDates(int $days = 30): Collection
-    {
-        $dates = collect();
+ * Get available dates for next N days
+ */
+public function getAvailableDates(int $days = 30, ?int $staffId = null): Collection
+{
+    $dates = collect();
 
-        foreach (CarbonPeriod::create(today(), today()->addDays($days)) as $date) {
-            $wh = WorkingHour::where('day_of_week', $date->dayOfWeek)->first();
+    foreach (CarbonPeriod::create(today(), today()->addDays($days)) as $date) {
+        $wh = WorkingHour::where('day_of_week', $date->dayOfWeek)->first();
 
-            if (!$wh || !$wh->is_open) continue;
+        if (!$wh || !$wh->is_open) continue;
 
-            $isBlocked = BlockedDate::where('date', $date->toDateString())
-                ->whereNull('staff_id')
-                ->exists();
+        $isBlocked = BlockedDate::where('date', $date->toDateString())
+            ->whereNull('staff_id')
+            ->exists();
 
-            if ($isBlocked) continue;
+        if ($isBlocked) continue;
 
-            $slotsQuery = Slot::where('date', $date->toDateString())->available();
+        $slotsQuery = Slot::where('date', $date->toDateString())->available();
 
-            if ($date->isToday()) {
-                $slotsQuery->where('start_time', '>', now()->format('H:i:s'));
-            }
-
-            $availableCount = $slotsQuery->count();
-
-            if ($availableCount > 0) {
-                $dates->push([
-                    'date'            => $date->toDateString(),
-                    'formatted'       => $date->format('D, M d'),
-                    'day_name'        => $date->format('l'),
-                    'is_today'        => $date->isToday(),
-                    'available_slots' => $availableCount,
-                ]);
-            }
+        // Filter by staff if provided
+        if ($staffId) {
+            $slotsQuery->where('staff_id', $staffId);
         }
 
-        return $dates;
+        if ($date->isToday()) {
+            $slotsQuery->where('start_time', '>', now()->format('H:i:s'));
+        }
+
+        $availableCount = $slotsQuery->count();
+
+        if ($availableCount > 0) {
+            $dates->push([
+                'date'            => $date->toDateString(),
+                'formatted'       => $date->format('D, M d'),
+                'day_name'        => $date->format('l'),
+                'is_today'        => $date->isToday(),
+                'available_slots' => $availableCount,
+            ]);
+        }
     }
+
+    return $dates;
+}
 
     /**
      * Block a date

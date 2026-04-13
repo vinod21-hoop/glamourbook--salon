@@ -1,6 +1,6 @@
 // src/pages/admin/ManageServices.jsx
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { adminAPI } from '../../services/api';
 import Loader from '../../components/common/Loader';
@@ -11,9 +11,12 @@ const ManageServices = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const imageInputRef = useRef(null);
   const [form, setForm] = useState({
     name: '', category: 'unisex', price: '', duration: '',
     description: '', is_active: true, home_available: true, sort_order: 0,
+    image: null,
   });
 
   useEffect(() => { loadServices(); }, []);
@@ -30,8 +33,11 @@ const ManageServices = () => {
     setForm({
       name: '', category: 'unisex', price: '', duration: '',
       description: '', is_active: true, home_available: true, sort_order: 0,
+      image: null,
     });
     setEditingService(null);
+    setImagePreview(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
   const openAddModal = () => {
@@ -50,21 +56,48 @@ const ManageServices = () => {
       is_active: service.is_active,
       home_available: service.home_available,
       sort_order: service.sort_order || 0,
+      image: null,
     });
+    setImagePreview(service.image_url || null);
     setShowModal(true);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image must be less than 2MB');
+        return;
+      }
+      setForm({ ...form, image: file });
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const formData = new FormData();
+      formData.append('name', form.name);
+      formData.append('category', form.category);
+      formData.append('price', form.price);
+      formData.append('duration', form.duration);
+      formData.append('description', form.description);
+      formData.append('is_active', form.is_active ? '1' : '0');
+      formData.append('home_available', form.home_available ? '1' : '0');
+      formData.append('sort_order', form.sort_order);
+
+      if (form.image) {
+        formData.append('image', form.image);
+      }
+
       if (editingService) {
-        await adminAPI.updateService(editingService.id, form);
+        formData.append('_method', 'PUT');
+        await adminAPI.updateService(editingService.id, formData);
         toast.success('Service updated!');
       } else {
-        const formData = new FormData();
-        Object.entries(form).forEach(([key, value]) => {
-          formData.append(key, value);
-        });
         await adminAPI.createService(formData);
         toast.success('Service created!');
       }
@@ -72,7 +105,7 @@ const ManageServices = () => {
       resetForm();
       loadServices();
     } catch (err) {
-      // Handled by interceptor
+      console.error(err);
     }
   };
 
@@ -82,9 +115,7 @@ const ManageServices = () => {
       await adminAPI.deleteService(id);
       toast.success('Service deleted');
       loadServices();
-    } catch (err) {
-      // Handled by interceptor
-    }
+    } catch (err) {}
   };
 
   const handleToggle = async (id) => {
@@ -92,9 +123,7 @@ const ManageServices = () => {
       const res = await adminAPI.toggleService(id);
       toast.success(res.data.message);
       loadServices();
-    } catch (err) {
-      // Handled by interceptor
-    }
+    } catch (err) {}
   };
 
   if (loading) return <Loader text="Loading services..." />;
@@ -119,6 +148,7 @@ const ManageServices = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="text-left py-3 px-4 font-medium text-gray-500">Image</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Service</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Category</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-500">Price</th>
@@ -138,6 +168,20 @@ const ManageServices = () => {
                     transition={{ delay: i * 0.03 }}
                     className="border-b border-gray-50 hover:bg-gray-50"
                   >
+                    {/* Image Column */}
+                    <td className="py-3 px-4">
+                      {service.image_url ? (
+                        <img
+                          src={service.image_url}
+                          alt={service.name}
+                          className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center text-lg">
+                          ✂️
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       <p className="font-medium text-gray-900">{service.name}</p>
                       <p className="text-xs text-gray-400 truncate max-w-[200px]">{service.description}</p>
@@ -205,6 +249,62 @@ const ManageServices = () => {
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* 🖼️ Image Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Image</label>
+                  <div className="flex items-center gap-4">
+                    {/* Image Preview */}
+                    <div
+                      onClick={() => imageInputRef.current?.click()}
+                      className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition overflow-hidden"
+                    >
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-2xl">📷</p>
+                          <p className="text-xs text-gray-400 mt-1">Upload</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        className="px-4 py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition"
+                      >
+                        Choose Image
+                      </button>
+                      <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP • Max 2MB</p>
+                      {imagePreview && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagePreview(null);
+                            setForm({ ...form, image: null });
+                            if (imageInputRef.current) imageInputRef.current.value = '';
+                          }}
+                          className="text-xs text-red-500 hover:text-red-700 mt-1"
+                        >
+                          Remove Image
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                   <input

@@ -1,4 +1,4 @@
-// src/pages/BookingPage.jsx (COMPLETE FILE)
+// src/pages/BookingPage.jsx
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -37,8 +37,18 @@ const BookingPage = () => {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+const [slotStaffFilter, setSlotStaffFilter] = useState(null);
+  // Staff filter from Staff page
+  const [selectedStaffId, setSelectedStaffId] = useState(null);
+  const [selectedStaffName, setSelectedStaffName] = useState(null);
 
   useEffect(() => {
+    // Coming from Staff page
+    if (location.state?.staffId) {
+      setSelectedStaffId(location.state.staffId);
+      setSelectedStaffName(location.state.staffName);
+    }
+    // Coming from Services page
     if (location.state?.category) {
       setGender(location.state.category);
       if (location.state.serviceId) setStep(2);
@@ -60,16 +70,33 @@ const BookingPage = () => {
   useEffect(() => {
     if (selectedService && step === 5) calculatePrice();
   }, [serviceType, step]);
-
+// Filter slots based on staff tab selection
+const filteredSlots = slotStaffFilter
+    ? slots.filter(s => s.staff_id === slotStaffFilter)
+    : selectedStaffId
+      ? slots.filter(s => s.staff_id === selectedStaffId)
+      : slots;
   // ─── Data Loaders ────────────────────────────────
 
   const loadServices = async () => {
     setLoading(true);
     try {
       const res = await serviceAPI.getAll({ category: gender });
-      setServices(res.data.data);
+      let serviceList = res.data.data;
+
+      // If staff selected, filter to only their services
+      if (selectedStaffId) {
+        const staffRes = await bookingAPI.getStaffServices
+          ? await bookingAPI.getStaffServices(selectedStaffId)
+          : null;
+
+        // If API doesn't exist, we'll show all services (staff can do any)
+        // But filter client-side if staff services data is available
+      }
+
+      setServices(serviceList);
       if (location.state?.serviceId) {
-        const pre = res.data.data.find(s => s.id === location.state.serviceId);
+        const pre = serviceList.find(s => s.id === location.state.serviceId);
         if (pre) setSelectedService(pre);
       }
     } catch (err) { console.error(err); }
@@ -79,7 +106,9 @@ const BookingPage = () => {
   const loadDates = async () => {
     setLoading(true);
     try {
-      const res = await bookingAPI.getAvailableDates();
+      const params = {};
+      if (selectedStaffId) params.staff_id = selectedStaffId;
+      const res = await bookingAPI.getAvailableDates(params);
       setDates(res.data.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -88,7 +117,9 @@ const BookingPage = () => {
   const loadSlots = async () => {
     setLoading(true);
     try {
-      const res = await bookingAPI.getAvailableSlots({ date: selectedDate.date });
+      const params = { date: selectedDate.date };
+      if (selectedStaffId) params.staff_id = selectedStaffId;
+      const res = await bookingAPI.getAvailableSlots(params);
       setSlots(res.data.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -119,6 +150,12 @@ const BookingPage = () => {
     } else {
       toast.error('Invalid or expired coupon');
     }
+  };
+
+  const clearStaffFilter = () => {
+    setSelectedStaffId(null);
+    setSelectedStaffName(null);
+    toast.success('Staff filter removed. Showing all available slots.');
   };
 
   // ─── Submit Booking ──────────────────────────────
@@ -163,10 +200,37 @@ const BookingPage = () => {
       <div className="max-w-4xl mx-auto px-4">
 
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <h1 className="text-3xl font-bold text-gray-900">Book Appointment</h1>
           <p className="text-gray-500 mt-1">Follow the steps to complete your booking</p>
         </div>
+
+        {/* Staff Filter Banner */}
+        {selectedStaffName && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-6"
+          >
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-4 flex items-center justify-between text-white shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-lg font-bold">
+                  {selectedStaffName.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold">Booking with {selectedStaffName}</p>
+                  <p className="text-purple-100 text-xs">Showing only {selectedStaffName}'s availability</p>
+                </div>
+              </div>
+              <button
+                onClick={clearStaffFilter}
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition"
+              >
+                ✕ Clear
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Stepper */}
         <div className="mb-10">
@@ -288,7 +352,12 @@ const BookingPage = () => {
               {/* ─── Step 3: Date Selection ─── */}
               {step === 3 && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Select Date</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Select Date</h2>
+                  {selectedStaffName && (
+                    <p className="text-purple-600 text-sm mb-4 font-medium">
+                      📅 Showing {selectedStaffName}'s available dates
+                    </p>
+                  )}
 
                   {loading ? <Loader /> : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-80 overflow-y-auto">
@@ -316,9 +385,21 @@ const BookingPage = () => {
                   )}
 
                   {dates.length === 0 && !loading && (
-                    <p className="text-center text-gray-500 py-10">
-                      No available dates. Please contact the salon.
-                    </p>
+                    <div className="text-center py-10">
+                      <p className="text-gray-500">
+                        {selectedStaffName
+                          ? `No available dates for ${selectedStaffName}.`
+                          : 'No available dates. Please contact the salon.'}
+                      </p>
+                      {selectedStaffName && (
+                        <button
+                          onClick={clearStaffFilter}
+                          className="mt-3 text-purple-600 hover:text-purple-700 font-medium text-sm"
+                        >
+                          Show all staff availability →
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   <button onClick={goBack} className="mt-4 text-gray-500 hover:text-purple-600 text-sm font-medium">
@@ -326,48 +407,161 @@ const BookingPage = () => {
                   </button>
                 </div>
               )}
+{/* ─── Step 4: Time Slot Selection ─── */}
+{step === 4 && (
+  <div>
+    <h2 className="text-xl font-bold text-gray-900 mb-2">Select Time Slot</h2>
+    <p className="text-gray-500 text-sm mb-6">📅 {selectedDate?.formatted}</p>
 
-              {/* ─── Step 4: Time Slot Selection ─── */}
-              {step === 4 && (
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Select Time Slot</h2>
-                  <p className="text-gray-500 text-sm mb-6">📅 {selectedDate?.formatted}</p>
+    {loading ? <Loader /> : (
+      <>
+        {/* Staff Filter Tabs */}
+        {!selectedStaffId && (
+          <div className="mb-6">
+            <p className="text-sm font-medium text-gray-700 mb-3">Choose Stylist</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSlotStaffFilter(null)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  !slotStaffFilter
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                👥 All Stylists
+              </button>
+              {/* Get unique staff from slots */}
+              {[...new Map(slots.map(s => [s.staff_id, { id: s.staff_id, name: s.staff_name }])).values()].map(staff => (
+                <button
+                  key={staff.id}
+                  onClick={() => setSlotStaffFilter(staff.id)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                    slotStaffFilter === staff.id
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    slotStaffFilter === staff.id
+                      ? 'bg-white/20 text-white'
+                      : 'bg-purple-100 text-purple-600'
+                  }`}>
+                    {staff.name?.charAt(0)}
+                  </span>
+                  {staff.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-                  {loading ? <Loader /> : (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-80 overflow-y-auto">
-                      {slots.map(slot => (
-                        <button
-                          key={slot.id}
-                          onClick={() => { setSelectedSlot(slot); goNext(); }}
-                          disabled={!slot.available}
-                          className={`p-3 rounded-xl border-2 text-center transition-all ${
-                            selectedSlot?.id === slot.id
-                              ? 'border-purple-500 bg-purple-50'
-                              : slot.available
-                                ? 'border-gray-100 hover:border-purple-200'
-                                : 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <p className="font-semibold text-sm text-gray-900">{slot.start_time}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{slot.staff_name}</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+        {/* Selected Staff Info Card */}
+        {(slotStaffFilter || selectedStaffId) && (
+          <div className="mb-4 bg-purple-50 rounded-xl p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                {(slots.find(s => s.staff_id === (slotStaffFilter || selectedStaffId))?.staff_name || selectedStaffName || '?').charAt(0)}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">
+                  {slots.find(s => s.staff_id === (slotStaffFilter || selectedStaffId))?.staff_name || selectedStaffName}
+                </p>
+                <p className="text-xs text-purple-600">
+                  {filteredSlots.length} slots available
+                </p>
+              </div>
+            </div>
+            {!selectedStaffId && slotStaffFilter && (
+              <button
+                onClick={() => setSlotStaffFilter(null)}
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                Show all
+              </button>
+            )}
+          </div>
+        )}
 
-                  {slots.length === 0 && !loading && (
-                    <p className="text-center text-gray-500 py-10">
-                      No slots available for this date.
-                    </p>
-                  )}
+        {/* Time Slots Grid - Grouped by Time */}
+        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+          {Object.entries(
+            filteredSlots.reduce((groups, slot) => {
+              const time = slot.start_time;
+              if (!groups[time]) groups[time] = [];
+              groups[time].push(slot);
+              return groups;
+            }, {})
+          ).map(([time, timeSlots]) => (
+            <div key={time} className="flex items-start gap-3">
+              {/* Time Label */}
+              <div className="w-20 flex-shrink-0 pt-3">
+                <p className="text-sm font-bold text-gray-900">{time}</p>
+              </div>
 
-                  <button onClick={goBack} className="mt-4 text-gray-500 hover:text-purple-600 text-sm font-medium">
-                    ← Back to date
+              {/* Staff Buttons for this time */}
+              <div className="flex flex-wrap gap-2 flex-1">
+                {timeSlots.map(slot => (
+                  <button
+                    key={slot.id}
+                    onClick={() => { setSelectedSlot(slot); goNext(); }}
+                    disabled={!slot.available}
+                    className={`px-4 py-2.5 rounded-xl border-2 transition-all duration-200 flex items-center gap-2 ${
+                      selectedSlot?.id === slot.id
+                        ? 'border-purple-500 bg-purple-50 shadow-md'
+                        : slot.available
+                          ? 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50 bg-white'
+                          : 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                      selectedSlot?.id === slot.id
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-100 text-purple-600'
+                    }`}>
+                      {slot.staff_name?.charAt(0)}
+                    </span>
+                    <span className={`text-sm font-medium ${
+                      selectedSlot?.id === slot.id ? 'text-purple-700' : 'text-gray-700'
+                    }`}>
+                      {slot.staff_name}
+                    </span>
                   </button>
-                </div>
-              )}
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
 
-              {/* ─── Step 5: Service Type (Salon / Home) ─── */}
+    {filteredSlots.length === 0 && !loading && (
+      <div className="text-center py-10">
+        <p className="text-5xl mb-3">📭</p>
+        <p className="text-gray-500">
+          {selectedStaffName
+            ? `No slots available for ${selectedStaffName} on this date.`
+            : slotStaffFilter
+              ? 'No slots available for this stylist.'
+              : 'No slots available for this date.'}
+        </p>
+        {(selectedStaffName || slotStaffFilter) && (
+          <button
+            onClick={() => { clearStaffFilter(); setSlotStaffFilter(null); }}
+            className="mt-3 text-purple-600 hover:text-purple-700 font-medium text-sm"
+          >
+            Show all staff availability →
+          </button>
+        )}
+      </div>
+    )}
+
+    <button onClick={goBack} className="mt-4 text-gray-500 hover:text-purple-600 text-sm font-medium">
+      ← Back to date
+    </button>
+  </div>
+)}
+
+              {/* ─── Step 5: Service Type ─── */}
               {step === 5 && (
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Where would you like the service?</h2>
@@ -399,18 +593,13 @@ const BookingPage = () => {
                     >
                       <span className="text-4xl block mb-2">🏠</span>
                       <span className="font-semibold text-gray-800">At Home</span>
-                      <p className="text-xs text-gray-500 mt-1">
-                        +₹500 extra charge
-                      </p>
+                      <p className="text-xs text-gray-500 mt-1">+₹500 extra charge</p>
                     </button>
                   </div>
 
-                  {/* Address for home service */}
                   {serviceType === 'home' && (
                     <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Your Address *
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Your Address *</label>
                       <textarea
                         value={address}
                         onChange={e => setAddress(e.target.value)}
@@ -421,11 +610,8 @@ const BookingPage = () => {
                     </div>
                   )}
 
-                  {/* Coupon */}
                   <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Coupon Code (Optional)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Coupon Code (Optional)</label>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -434,13 +620,10 @@ const BookingPage = () => {
                         className="input-field flex-1"
                         placeholder="Enter code e.g. WELCOME20"
                       />
-                      <button onClick={applyCoupon} className="btn-secondary !px-4 !py-2 text-sm">
-                        Apply
-                      </button>
+                      <button onClick={applyCoupon} className="btn-secondary !px-4 !py-2 text-sm">Apply</button>
                     </div>
                   </div>
 
-                  {/* Price Preview */}
                   {pricing && (
                     <div className="bg-gray-50 rounded-xl p-4 mb-4">
                       <div className="space-y-2 text-sm">
@@ -468,11 +651,8 @@ const BookingPage = () => {
                     </div>
                   )}
 
-                  {/* Notes */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Notes (Optional)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes (Optional)</label>
                     <input
                       type="text"
                       value={notes}
@@ -483,12 +663,8 @@ const BookingPage = () => {
                   </div>
 
                   <div className="flex gap-3">
-                    <button onClick={goBack} className="btn-secondary flex-1">
-                      ← Back
-                    </button>
-                    <button onClick={goNext} className="btn-primary flex-1">
-                      Review Booking →
-                    </button>
+                    <button onClick={goBack} className="btn-secondary flex-1">← Back</button>
+                    <button onClick={goNext} className="btn-primary flex-1">Review Booking →</button>
                   </div>
                 </div>
               )}
@@ -499,7 +675,6 @@ const BookingPage = () => {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Confirm Your Booking</h2>
 
                   <div className="space-y-4">
-                    {/* Booking Summary */}
                     <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
@@ -540,7 +715,6 @@ const BookingPage = () => {
                       )}
                     </div>
 
-                    {/* Price Breakdown */}
                     <div className="bg-white border border-gray-200 rounded-xl p-5">
                       <h3 className="font-semibold text-gray-900 mb-3">Price Breakdown</h3>
                       <div className="space-y-2 text-sm">
@@ -562,18 +736,14 @@ const BookingPage = () => {
                         )}
                         <div className="flex justify-between pt-3 border-t text-lg font-bold">
                           <span>Total</span>
-                          <span className="text-purple-600">
-                            ₹{pricing?.total || selectedService?.price}
-                          </span>
+                          <span className="text-purple-600">₹{pricing?.total || selectedService?.price}</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex gap-3 mt-6">
-                    <button onClick={goBack} className="btn-secondary flex-1">
-                      ← Modify
-                    </button>
+                    <button onClick={goBack} className="btn-secondary flex-1">← Modify</button>
                     <button
                       onClick={handleSubmit}
                       disabled={submitting}

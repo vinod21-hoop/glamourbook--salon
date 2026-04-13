@@ -10,9 +10,10 @@ const ManageStaff = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [form, setForm] = useState({
     name: '', phone: '', email: '', specialization: '',
-    max_daily_bookings: 16, is_active: true,
+    max_daily_bookings: 16, is_active: true, avatar: null,
   });
 
   useEffect(() => { loadStaff(); }, []);
@@ -26,16 +27,22 @@ const ManageStaff = () => {
   };
 
   const resetForm = () => {
-    setForm({ name: '', phone: '', email: '', specialization: '', max_daily_bookings: 16, is_active: true });
+    setForm({ name: '', phone: '', email: '', specialization: '', max_daily_bookings: 16, is_active: true, avatar: null });
+    setAvatarPreview(null);
     setEditing(null);
   };
 
   const openEdit = (s) => {
     setEditing(s);
+    setAvatarPreview(s.avatar_url || null);
     setForm({
-      name: s.name, phone: s.phone || '', email: s.email || '',
-      specialization: s.specialization || '', max_daily_bookings: s.max_daily,
-      is_active: s.is_active,
+      name: s.name,
+      phone: s.phone || '',
+      email: s.email || '',
+      specialization: s.specialization || '',
+      max_daily_bookings: s.max_daily_bookings ?? 16,
+      is_active: Boolean(s.is_active),
+      avatar: null, // Don't load existing avatar URL, only upload new files
     });
     setShowModal(true);
   };
@@ -43,17 +50,63 @@ const ManageStaff = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Build FormData for file upload
+      const formData = new FormData();
+      formData.append('name', form.name);
+      formData.append('phone', form.phone);
+      formData.append('email', form.email);
+      formData.append('specialization', form.specialization);
+      formData.append('max_daily_bookings', form.max_daily_bookings);
+      formData.append('is_active', form.is_active ? '1' : '0');
+      
+      // Only append avatar if it's a new file
+      if (form.avatar && form.avatar instanceof File) {
+        formData.append('avatar', form.avatar);
+      }
+
       if (editing) {
-        await adminAPI.updateStaff(editing.id, form);
+        await adminAPI.updateStaff(editing.id, formData);
         toast.success('Staff updated');
       } else {
-        await adminAPI.createStaff(form);
-        toast.success('Staff added');
+        const response = await adminAPI.createStaff(formData);
+        toast.success('Staff added successfully!');
+
+        // Show login credentials in a special toast
+        if (response.data.login_credentials) {
+          const { email, password } = response.data.login_credentials;
+          setTimeout(() => {
+            toast.success(
+              <div className="text-left">
+                <div className="font-bold mb-1">Login Credentials Generated:</div>
+                <div className="text-sm">Email: {email}</div>
+                <div className="text-sm">Password: <span className="font-mono bg-gray-100 px-1 rounded">{password}</span></div>
+                <div className="text-xs text-gray-600 mt-1">⚠️ Save these credentials now!</div>
+              </div>,
+              { duration: 10000 }
+            );
+          }, 1000);
+        }
       }
       setShowModal(false);
       resetForm();
       loadStaff();
-    } catch (err) {}
+    } catch (err) {
+      const message = err.response?.data?.error || err.response?.data?.message || 'Unable to create staff member.';
+      toast.error(message);
+    }
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setForm({ ...form, avatar: file });
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -82,8 +135,12 @@ const ManageStaff = () => {
           {staff.map(s => (
             <div key={s.id} className="card">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                  {s.name.charAt(0)}
+                <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center text-white font-bold text-lg bg-gradient-to-br from-purple-500 to-pink-500">
+                  {s.avatar_url ? (
+                    <img src={s.avatar_url} alt={s.name} className="w-full h-full object-cover" />
+                  ) : (
+                    s.name.charAt(0)
+                  )}
                 </div>
                 <span className={`badge ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                   {s.is_active ? 'Active' : 'Inactive'}
@@ -112,9 +169,9 @@ const ManageStaff = () => {
 
               {s.services?.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1">
-                  {s.services.map((svc, i) => (
-                    <span key={i} className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">
-                      {svc}
+                  {s.services.map((svc) => (
+                    <span key={svc.id} className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">
+                      {svc.name}
                     </span>
                   ))}
                 </div>
@@ -128,8 +185,13 @@ const ManageStaff = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md">
               <h3 className="text-lg font-bold mb-4">
-                {editing ? 'Edit Staff' : 'Add Staff'}
+                {editing ? 'Edit Staff' : 'Add New Staff Member'}
               </h3>
+              {!editing && (
+                <p className="text-sm text-gray-600 mb-4">
+                  Login credentials will be automatically generated and displayed after creation.
+                </p>
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -149,12 +211,13 @@ const ManageStaff = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
                     <input
                       type="email" value={form.email}
                       onChange={e => setForm({ ...form, email: e.target.value })}
-                      className="input-field"
+                      className="input-field" required
                     />
+                    <p className="text-xs text-gray-500 mt-1">Required for staff login credentials</p>
                   </div>
                 </div>
                 <div>
@@ -164,6 +227,22 @@ const ManageStaff = () => {
                     onChange={e => setForm({ ...form, specialization: e.target.value })}
                     className="input-field" placeholder="e.g. Hair Specialist"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Profile Picture</label>
+                  <div className="flex gap-3 items-start">
+                    {avatarPreview && (
+                      <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                        <img src={avatarPreview} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <input
+                      type="file" accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="input-field flex-1 text-sm"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">JPG, PNG or GIF (max 2MB)</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Max Daily Bookings</label>

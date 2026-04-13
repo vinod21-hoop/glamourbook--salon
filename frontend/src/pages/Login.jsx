@@ -17,7 +17,18 @@ const Login = () => {
 
     try {
       const user = await login(form.email, form.password);
-      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+
+      // ✅ Role-based redirect
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'staff':
+          navigate('/staff/dashboard');
+          break;
+        default:
+          navigate('/dashboard');
+      }
     } catch (err) {
       // Error handled by interceptor
     } finally {
@@ -86,18 +97,24 @@ const Login = () => {
           {/* Quick login for testing */}
           <div className="mt-6 p-4 bg-gray-50 rounded-xl">
             <p className="text-xs text-gray-500 font-medium mb-2">Quick Login (Demo)</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setForm({ email: 'admin@glamourbook.com', password: 'password123' })}
                 className="text-xs bg-orange-100 text-orange-700 px-3 py-2 rounded-lg hover:bg-orange-200 transition"
               >
-                Admin
+                👑 Admin
+              </button>
+              <button
+                onClick={() => setForm({ email: 'priya@glamourbook.com', password: 'staff123' })}
+                className="text-xs bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 transition"
+              >
+                💼 Staff
               </button>
               <button
                 onClick={() => setForm({ email: 'john@test.com', password: 'password123' })}
-                className="text-xs bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 transition"
+                className="text-xs bg-green-100 text-green-700 px-3 py-2 rounded-lg hover:bg-green-200 transition"
               >
-                User
+                👤 User
               </button>
             </div>
           </div>

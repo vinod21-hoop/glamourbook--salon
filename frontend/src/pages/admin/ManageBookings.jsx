@@ -8,18 +8,33 @@ import toast from 'react-hot-toast';
 
 const ManageBookings = () => {
   const [bookings, setBookings] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({
     status: 'all',
     date: '',
     search: '',
+    staff_id: '',
     page: 1,
   });
 
   useEffect(() => {
+    loadStaff();
+  }, []);
+
+  useEffect(() => {
     loadBookings();
   }, [filters]);
+
+  const loadStaff = async () => {
+    try {
+      const res = await adminAPI.getStaff();
+      setStaff(res.data.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadBookings = async () => {
     setLoading(true);
@@ -28,6 +43,7 @@ const ManageBookings = () => {
       if (params.status === 'all') delete params.status;
       if (!params.date) delete params.date;
       if (!params.search) delete params.search;
+      if (!params.staff_id) delete params.staff_id;
 
       const res = await adminAPI.getBookings(params);
       setBookings(res.data.data.data || []);
@@ -131,10 +147,27 @@ const ManageBookings = () => {
               />
             </div>
 
+            {/* Staff Filter */}
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Staff</label>
+              <select
+                value={filters.staff_id}
+                onChange={e => setFilters({ ...filters, staff_id: e.target.value, page: 1 })}
+                className="input-field !py-2 text-sm"
+              >
+                <option value="">All Staff</option>
+                {staff.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Clear */}
             <div className="flex items-end">
               <button
-                onClick={() => setFilters({ status: 'all', date: '', search: '', page: 1 })}
+                onClick={() => setFilters({ status: 'all', date: '', search: '', staff_id: '', page: 1 })}
                 className="text-sm text-purple-600 hover:underline px-3 py-2"
               >
                 Clear Filters
@@ -153,6 +186,7 @@ const ManageBookings = () => {
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Ref</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Customer</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Service</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-500">Staff</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Date / Time</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Type</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-500">Amount</th>
@@ -170,6 +204,9 @@ const ManageBookings = () => {
                         <p className="text-xs text-gray-400">{b.user?.phone}</p>
                       </td>
                       <td className="py-3 px-4 text-gray-600">{b.service?.name}</td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm font-medium text-gray-900">{b.staff?.name || '—'}</span>
+                      </td>
                       <td className="py-3 px-4">
                         <p className="text-gray-900">{b.date}</p>
                         <p className="text-xs text-gray-400">{b.time_slot}</p>

@@ -1,6 +1,4 @@
 <?php
-// routes/api.php
-// REPLACE the entire file
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\RegisterController;
@@ -17,7 +15,7 @@ use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Admin\SlotController;
 use App\Http\Controllers\Admin\QueueController as AdminQueueController;
 use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\StaffController;
+use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Admin\CouponController;
 
 /*
@@ -28,6 +26,7 @@ use App\Http\Controllers\Admin\CouponController;
 Route::get('/test', function () {
     return response()->json(['message' => 'API working']);
 });
+
 // Auth
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [LoginController::class, 'login']);
@@ -36,21 +35,40 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 
+// Public staff listing (NO wildcard here!)
+Route::get('/staff', [\App\Http\Controllers\StaffController::class, 'index']);
+
 // Public reviews
 Route::get('/services/{id}/reviews', [ReviewController::class, 'serviceReviews']);
 
-// Public queue display (for TV/monitor in salon)
+// Public queue display
 Route::get('/queue/today', [QueueController::class, 'todayQueue']);
 
-// Public settings (for frontend dynamic content)
+// Public settings
 Route::get('/settings/public', [SettingsController::class, 'publicSettings']);
+
+/*
+|--------------------------------------------------------------------------
+| STAFF PORTAL ROUTES (Must be BEFORE any /staff/{wildcard})
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:api'])->prefix('staff')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'dashboard']);
+    Route::get('/my-schedule', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'mySchedule']);
+    Route::get('/today-bookings', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'todayBookings']);
+    Route::post('/collect-cash/{bookingId}', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'collectCash']);
+    Route::post('/start-service/{bookingId}', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'startService']);
+    Route::post('/complete-service/{bookingId}', [\App\Http\Controllers\Staff\StaffDashboardController::class, 'completeService']);
+});
+
+// Public staff show (LAST — wildcard catches everything)
+Route::get('/staff/{staff}', [\App\Http\Controllers\StaffController::class, 'show']);
 
 /*
 |--------------------------------------------------------------------------
 | AUTHENTICATED USER ROUTES
 |--------------------------------------------------------------------------
 */
-
 Route::middleware('auth:api')->group(function () {
 
     // Auth management
@@ -73,6 +91,7 @@ Route::middleware('auth:api')->group(function () {
     // Payment
     Route::post('/payment/create-order/{bookingId}', [PaymentController::class, 'createOrder']);
     Route::post('/payment/verify', [PaymentController::class, 'verify']);
+    Route::post('/payment/cash/{bookingId}', [PaymentController::class, 'chooseCashPayment']);
 
     // Reviews
     Route::post('/reviews', [ReviewController::class, 'store']);
@@ -87,7 +106,6 @@ Route::middleware('auth:api')->group(function () {
     | ADMIN ROUTES
     |--------------------------------------------------------------------------
     */
-
     Route::middleware('admin')->prefix('admin')->group(function () {
 
         // Dashboard
@@ -129,11 +147,13 @@ Route::middleware('auth:api')->group(function () {
         Route::put('/settings', [SettingsController::class, 'update']);
         Route::put('/settings/bulk', [SettingsController::class, 'bulkUpdate']);
 
-        // Staff
-        Route::get('/staff', [StaffController::class, 'index']);
-        Route::post('/staff', [StaffController::class, 'store']);
-        Route::put('/staff/{id}', [StaffController::class, 'update']);
-        Route::delete('/staff/{id}', [StaffController::class, 'destroy']);
+        // Staff Management
+        Route::get('/staff', [AdminStaffController::class, 'index']);
+        Route::post('/staff', [AdminStaffController::class, 'store']);
+        Route::get('/staff/{id}', [AdminStaffController::class, 'show']);
+        Route::put('/staff/{id}', [AdminStaffController::class, 'update']);
+        Route::delete('/staff/{id}', [AdminStaffController::class, 'destroy']);
+        Route::post('/staff/{id}/reset-password', [AdminStaffController::class, 'resetPassword']);
 
         // Coupons
         Route::get('/coupons', [CouponController::class, 'index']);

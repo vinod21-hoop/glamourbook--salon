@@ -2,6 +2,9 @@
 // routes/console.php
 
 use Illuminate\Support\Facades\Schedule;
+
+// Generate slots daily at midnight for next 30 days
+Schedule::command('slots:generate 30')->daily()->at('00:00');
 use App\Services\SlotService;
 use App\Jobs\SendBookingReminder;
 

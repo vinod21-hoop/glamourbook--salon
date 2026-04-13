@@ -133,16 +133,27 @@ class PaymentService
     }
 
     /**
-     * Create cash payment (for walk-ins)
+     * Create cash payment (pending — will be marked captured when cash is collected)
      */
     public function createCashPayment(Booking $booking): Payment
     {
+        // Check if payment already exists
+        $existing = Payment::where('booking_id', $booking->id)->first();
+
+        if ($existing) {
+            $existing->update([
+                'method' => 'cash',
+                'status' => 'pending',
+            ]);
+            return $existing;
+        }
+
         return Payment::create([
             'booking_id' => $booking->id,
             'user_id'    => $booking->user_id,
             'amount'     => $booking->total_price,
             'currency'   => 'INR',
-            'status'     => 'captured',
+            'status'     => 'pending',
             'method'     => 'cash',
         ]);
     }

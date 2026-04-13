@@ -11,6 +11,8 @@ const Navbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
 
+  const isStaff = user?.role === 'staff';
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -39,6 +41,9 @@ const Navbar = () => {
             <Link to="/services" className="text-gray-600 hover:text-purple-600 transition font-medium">
               Services
             </Link>
+            <Link to="/staff" className="text-gray-600 hover:text-purple-600 transition font-medium">
+              Our Team
+            </Link>
             <Link to="/queue" className="text-gray-600 hover:text-purple-600 transition font-medium">
               Live Queue
             </Link>
@@ -53,6 +58,9 @@ const Navbar = () => {
                     {user?.name?.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-medium text-gray-700">{user?.name?.split(' ')[0]}</span>
+                  {/* Role badge */}
+                  {isAdmin && <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">Admin</span>}
+                  {isStaff && <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">Staff</span>}
                   <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -69,23 +77,48 @@ const Navbar = () => {
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-semibold text-gray-800">{user?.name}</p>
                         <p className="text-xs text-gray-500">{user?.email}</p>
+                        <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
+                          isAdmin ? 'bg-orange-100 text-orange-600' :
+                          isStaff ? 'bg-blue-100 text-blue-600' :
+                          'bg-green-100 text-green-600'
+                        }`}>
+                          {isAdmin ? '👑 Admin' : isStaff ? '💼 Staff' : '👤 Customer'}
+                        </span>
                       </div>
 
-                      <Link
-                        to="/dashboard"
-                        onClick={() => setProfileOpen(false)}
-                        className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition"
-                      >
-                        📋 My Bookings
-                      </Link>
-                      <Link
-                        to="/book"
-                        onClick={() => setProfileOpen(false)}
-                        className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition"
-                      >
-                        📅 Book Now
-                      </Link>
+                      {/* Customer Links */}
+                      {!isStaff && !isAdmin && (
+                        <>
+                          <Link
+                            to="/dashboard"
+                            onClick={() => setProfileOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition"
+                          >
+                            📋 My Bookings
+                          </Link>
+                          <Link
+                            to="/book"
+                            onClick={() => setProfileOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition"
+                          >
+                            📅 Book Now
+                          </Link>
+                        </>
+                      )}
 
+                      {/* Staff Links */}
+{isStaff && (
+  <>
+    <Link
+      to="/staff/dashboard"
+      onClick={() => setProfileOpen(false)}
+      className="block px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 transition"
+    >
+      💼 Staff Dashboard
+    </Link>
+  </>
+)}
+                      {/* Admin Links */}
                       {isAdmin && (
                         <Link
                           to="/admin"
@@ -147,16 +180,34 @@ const Navbar = () => {
               <div className="py-4 space-y-2">
                 <Link to="/" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">Home</Link>
                 <Link to="/services" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">Services</Link>
+                <Link to="/staff" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">Our Team</Link>
                 <Link to="/queue" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">Live Queue</Link>
 
                 {isAuthenticated ? (
                   <>
-                    <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">My Bookings</Link>
-                    <Link to="/book" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-purple-600 font-semibold hover:bg-purple-50 rounded-lg">Book Now</Link>
-                    {isAdmin && (
-                      <Link to="/admin" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg">Admin Panel</Link>
+                    {/* Customer Mobile Links */}
+                    {!isStaff && !isAdmin && (
+                      <>
+                        <Link to="/dashboard" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-gray-700 hover:bg-purple-50 rounded-lg">📋 My Bookings</Link>
+                        <Link to="/book" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-purple-600 font-semibold hover:bg-purple-50 rounded-lg">📅 Book Now</Link>
+                      </>
                     )}
-                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">Logout</button>
+
+                  {/* Staff Mobile Links */}
+{isStaff && (
+  <>
+    <div className="px-4 py-1">
+      <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Staff Portal</span>
+    </div>
+    <Link to="/staff/dashboard" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-blue-600 font-semibold hover:bg-blue-50 rounded-lg">💼 Staff Dashboard</Link>
+  </>
+)}
+     {/* Admin Mobile Links */}
+                    {isAdmin && (
+                      <Link to="/admin" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg">⚙️ Admin Panel</Link>
+                    )}
+
+                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">🚪 Logout</button>
                   </>
                 ) : (
                   <>

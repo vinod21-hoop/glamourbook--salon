@@ -10,7 +10,7 @@ import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AdminRoute from './components/common/AdminRoute';
-
+import StaffDashboard from './pages/StaffDashboard';
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -20,7 +20,7 @@ import BookingPage from './pages/BookingPage';
 import PaymentPage from './pages/PaymentPage';
 import Dashboard from './pages/Dashboard';
 import QueueDisplay from './pages/QueueDisplay';
-
+import Staff from './pages/Staff';
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageServices from './pages/admin/ManageServices';
@@ -45,6 +45,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/services" element={<Services />} />
+		<Route path="/staff" element={<Staff />} /> 
                 <Route path="/queue" element={<QueueDisplay />} />
 
                 {/* Protected Routes */}
@@ -57,7 +58,10 @@ function App() {
                 <Route path="/dashboard" element={
                   <ProtectedRoute><Dashboard /></ProtectedRoute>
                 } />
-
+		{/* Staff Routes */}
+<Route path="/staff/dashboard" element={
+  <ProtectedRoute><StaffDashboard /></ProtectedRoute>
+} />
                 {/* Admin Routes */}
                 <Route path="/admin" element={
                   <AdminRoute><AdminDashboard /></AdminRoute>

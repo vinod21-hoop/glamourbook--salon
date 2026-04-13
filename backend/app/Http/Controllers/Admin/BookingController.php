@@ -10,7 +10,7 @@ use App\Services\BookingService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-
+use App\Models\NotificationLog;
 class BookingController extends Controller
 {
     public function __construct(
@@ -49,14 +49,19 @@ class BookingController extends Controller
             $query->where('type', $request->type);
         }
 
+        // Filter by staff
+        if ($request->has('staff_id') && $request->staff_id) {
+            $query->where('staff_id', $request->staff_id);
+        }
+
         // Search
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('booking_ref', 'ILIKE', "%{$search}%")
+                $q->where('booking_ref', 'LIKE', "%{$search}%")
                   ->orWhereHas('user', fn($uq) =>
-                      $uq->where('name', 'ILIKE', "%{$search}%")
-                         ->orWhere('phone', 'ILIKE', "%{$search}%")
+                      $uq->where('name', 'LIKE', "%{$search}%")
+                         ->orWhere('phone', 'LIKE', "%{$search}%")
                   );
             });
         }
@@ -177,22 +182,48 @@ class BookingController extends Controller
         }
     }
 
-    /**
-     * Accept cash payment
-     */
-    public function acceptCashPayment(int $id): JsonResponse
-    {
-        $booking = Booking::where('status', 'pending')->findOrFail($id);
+ /**
+ * Accept cash payment (Admin marks as paid)
+ */
+public function acceptCashPayment(int $id): JsonResponse
+{
+    $booking = Booking::with(['service', 'user', 'payment'])->findOrFail($id);
 
-        $payment = $this->paymentService->createCashPayment($booking);
-        $this->bookingService->confirmBooking($booking);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cash payment accepted. Booking confirmed.',
-            'data'    => $booking->fresh(['payment', 'queue']),
+    // If payment exists and is pending, mark as captured
+    if ($booking->payment && $booking->payment->status === 'pending') {
+        $booking->payment->update([
+            'status' => 'captured',
+            'method' => 'cash',
         ]);
+    } else if (!$booking->payment) {
+        // Create new cash payment
+        $this->paymentService->createCashPayment($booking);
+        $booking->payment->update(['status' => 'captured']);
     }
+
+    // Confirm booking if still pending
+    if ($booking->status === 'pending') {
+        $this->bookingService->confirmBooking($booking);
+    }
+
+    // Notify customer: "Thank you for cash payment!"
+    NotificationLog::create([
+        'user_id' => $booking->user_id,
+        'type'    => 'cash_payment_received',
+        'title'   => 'Cash Payment Received! ✅',
+        'message' => "Thank you! Your cash payment of ₹{$booking->total_price} for {$booking->service->name} has been received. Your booking is confirmed!",
+        'data'    => json_encode([
+            'booking_id' => $booking->id,
+            'amount'     => $booking->total_price,
+        ]),
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Cash payment accepted. Customer notified! ✅',
+        'data'    => $booking->fresh(['payment', 'queue']),
+    ]);
+}
 
     /**
      * Get today's bookings summary

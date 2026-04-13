@@ -96,19 +96,21 @@ const Services = () => {
               className="card group hover:border-purple-200"
             >
               {/* Service Image Placeholder */}
-              {service.image_url ? (
-                <img
-                  src={service.image_url}
-                  alt={service.name}
-                  className="w-full h-48 object-cover rounded-xl mb-4"
-                />
-              ) : (
-                <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl mb-4 flex items-center justify-center">
-                  <span className="text-5xl">
-                    {service.category === 'male' ? '💈' : service.category === 'female' ? '💅' : '✂️'}
-                  </span>
-                </div>
-              )}
+             {service.image_url ? (
+    <div className="w-full h-48 rounded-xl mb-4 overflow-hidden bg-gray-100">
+      <img
+        src={service.image_url}
+        alt={service.name}
+        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+      />
+    </div>
+) : (
+    <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl mb-4 flex items-center justify-center">
+      <span className="text-5xl">
+        {service.category === 'male' ? '💈' : service.category === 'female' ? '💅' : '✂️'}
+      </span>
+    </div>
+)}
 
               {/* Category Badge */}
               <div className="flex items-center gap-2 mb-3">

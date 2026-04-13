@@ -24,7 +24,7 @@ class ServiceController extends Controller
 
         // Search
         if ($request->has('search')) {
-            $query->where('name', 'ILIKE', "%{$request->search}%");
+            $query->where('name', 'LIKE', "%{$request->search}%");
         }
 
         $services = $query->get()->map(fn($service) => [

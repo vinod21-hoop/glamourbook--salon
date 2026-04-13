@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class LoginController extends Controller
@@ -19,11 +20,18 @@ class LoginController extends Controller
 
         $credentials = $request->only('email', 'password');
 
-        if (!$token = JWTAuth::attempt($credentials)) {
+        try {
+            if (!$token = JWTAuth::attempt($credentials)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid email or password',
+                ], 401);
+            }
+        } catch (JWTException $exception) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid email or password',
-            ], 401);
+                'message' => 'Authentication server misconfigured: ' . $exception->getMessage(),
+            ], 500);
         }
 
         $user = auth()->user();
