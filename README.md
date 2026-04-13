@@ -75,10 +75,20 @@ A full-stack salon booking application built with Laravel and React. This projec
 
 ## Deployment Recommendations
 
-- Host the React frontend on **Netlify**
+- Host the React frontend on **Netlify** (root `netlify.toml` included for frontend deployment)
 - Host the Laravel backend on **Railway.app** or **Render**
 - Use **MySQL** on Railway or **PlanetScale** for production database
 - Update frontend API base URL to the deployed backend endpoint
+
+### Netlify and API Environment
+
+When deploying the frontend to Netlify, set the environment variable:
+
+```text
+VITE_API_URL=https://your-backend-domain.com/api
+```
+
+This ensures the frontend calls the deployed Laravel API instead of `localhost`.
 
 ## Notes
 
