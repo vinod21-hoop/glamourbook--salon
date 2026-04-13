@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { staffPortalAPI } from '../../services/api';
+import { staffPortalAPI } from '../../Services/api';
 import { useAuth } from '../../context/AuthContext';
 import Loader from '../../components/common/Loader';
 import toast from 'react-hot-toast';

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { bookingAPI, queueAPI, reviewAPI } from '../services/api';
+import { bookingAPI, queueAPI, reviewAPI } from '../Services/api';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/common/StatusBadge';
 import Loader from '../components/common/Loader';

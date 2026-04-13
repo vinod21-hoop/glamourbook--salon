@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { adminAPI } from '../../services/api';
+import { adminAPI } from '../../Services/api';
 import Loader from '../../components/common/Loader';
 import toast from 'react-hot-toast';
 

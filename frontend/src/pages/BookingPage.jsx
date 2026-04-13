@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceAPI, bookingAPI } from '../services/api';
+import { serviceAPI, bookingAPI } from '../Services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';

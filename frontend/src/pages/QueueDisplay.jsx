@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { queueAPI } from '../services/api';
+import { queueAPI } from '../Services/api';
 import StatusBadge from '../components/common/StatusBadge';
 
 const QueueDisplay = () => {

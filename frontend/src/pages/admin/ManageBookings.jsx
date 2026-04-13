@@ -1,7 +1,7 @@
 // src/pages/admin/ManageBookings.jsx
 
 import { useState, useEffect } from 'react';
-import { adminAPI } from '../../services/api';
+import { adminAPI } from '../../Services/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
 import toast from 'react-hot-toast';

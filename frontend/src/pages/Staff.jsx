@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { staffAPI } from '../services/api';
+import { staffAPI } from '../Services/api';
 import Loader from '../components/common/Loader';
 
 const Staff = () => {

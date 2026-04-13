@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { bookingAPI, paymentAPI } from '../services/api';
+import { bookingAPI, paymentAPI } from '../Services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';

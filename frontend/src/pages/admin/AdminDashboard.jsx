@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { adminAPI } from '../../services/api';
+import { adminAPI } from '../../Services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import Loader from '../../components/common/Loader';
 import StatusBadge from '../../components/common/StatusBadge';
