@@ -53,8 +53,15 @@ RUN cd backend && if [ ! -f .env ]; then cp .env.example .env; fi
 # Generate APP_KEY
 RUN cd backend && php artisan key:generate --force
 
-# Set proper permissions for Laravel
-RUN cd backend && chmod -R 775 storage bootstrap/cache
+# Create Laravel folders and set permissions
+RUN cd backend \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views \
+    && mkdir -p storage/framework/cache \
+    && mkdir -p storage/logs \
+    && mkdir -p bootstrap/cache \
+    && chmod -R 775 storage \
+    && chmod -R 775 bootstrap/cache
 
 EXPOSE 8000
 
