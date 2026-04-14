@@ -16,12 +16,14 @@ RUN apt-get update \
         libjpeg-dev \
         libfreetype6-dev \
         zlib1g-dev \
-        gnupg \
+        libxml2-dev \
+        libonig-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo \
         pdo_mysql \
         mbstring \
+        dom \
         xml \
         zip \
         intl \
@@ -29,7 +31,7 @@ RUN apt-get update \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js using the official method
+# Install Node.js
 RUN curl -fsSL https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-x64.tar.xz \
     | tar -xJ -C /usr/local --strip-components=1
 
@@ -38,7 +40,7 @@ WORKDIR /app
 # Copy all files
 COPY . /app
 
-# Install PHP dependencies (using update since composer.lock was removed)
+# Install PHP dependencies
 RUN cd backend && composer update --no-dev --optimize-autoloader
 
 # Install Node dependencies and build
