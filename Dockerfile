@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM php:8.2-cli
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -9,18 +9,21 @@ RUN apt-get update \
         ca-certificates \
         unzip \
         zip \
-        php-cli \
-        php-mbstring \
-        php-xml \
-        php-curl \
-        php-zip \
-        php-gd \
-        php-mysql \
-        php-bcmath \
-        php-intl \
-        php-sqlite3 \
-        php-tokenizer \
-        gnupg \
+        libzip-dev \
+        libicu-dev \
+        libpng-dev \
+        libjpeg-dev \
+        libfreetype6-dev \
+        zlib1g-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo \
+        pdo_mysql \
+        mbstring \
+        xml \
+        zip \
+        intl \
+        gd \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
