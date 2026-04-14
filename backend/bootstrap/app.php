@@ -1,10 +1,9 @@
 <?php
-// bootstrap/app.php
-// UPDATE this file to register middleware aliases
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\HandleCors;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Ensure CORS headers are added before any other middleware runs,
+        // so OPTIONS preflight requests are handled correctly.
+        $middleware->prepend(HandleCors::class);
+
         // Register middleware aliases
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
