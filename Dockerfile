@@ -63,6 +63,9 @@ RUN cd backend \
     && chmod -R 775 storage \
     && chmod -R 775 bootstrap/cache
 
+# Set working directory to backend
+WORKDIR /app/backend
+
 EXPOSE 8000
 
-CMD ["sh", "-c", "cd backend && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+CMD ["/bin/sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
