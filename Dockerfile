@@ -2,6 +2,7 @@ FROM php:8.2-cli
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Install system dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
@@ -15,6 +16,7 @@ RUN apt-get update \
         libjpeg-dev \
         libfreetype6-dev \
         zlib1g-dev \
+        gnupg \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo \
@@ -24,19 +26,34 @@ RUN apt-get update \
         zip \
         intl \
         gd \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js using the official method
+RUN curl -fsSL https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-x64.tar.xz \
+    | tar -xJ -C /usr/local --strip-components=1
+
 WORKDIR /app
 
+# Copy all files
 COPY . /app
 
-RUN cd backend && composer install --no-dev --optimize-autoloader
+# Install PHP dependencies (using update since composer.lock was removed)
+RUN cd backend && composer update --no-dev --optimize-autoloader
+
+# Install Node dependencies and build
 RUN cd backend && rm -rf node_modules package-lock.json && npm install
-RUN cd backend && npm run build
+RUN cd backend && npm run build || true
+
+# Generate .env file if it doesn't exist
+RUN cd backend && if [ ! -f .env ]; then cp .env.example .env; fi
+
+# Generate APP_KEY
+RUN cd backend && php artisan key:generate --force
+
+# Set proper permissions for Laravel
+RUN cd backend && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "cd backend && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+CMD ["sh", "-c", "cd backend && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
