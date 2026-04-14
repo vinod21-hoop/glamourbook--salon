@@ -2,7 +2,6 @@ FROM php:8.2-cli
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
@@ -18,6 +17,7 @@ RUN apt-get update \
         zlib1g-dev \
         libxml2-dev \
         libonig-dev \
+        bash \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo \
@@ -31,29 +31,21 @@ RUN apt-get update \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js
 RUN curl -fsSL https://nodejs.org/dist/v20.11.1/node-v20.11.1-linux-x64.tar.xz \
     | tar -xJ -C /usr/local --strip-components=1
 
 WORKDIR /app
 
-# Copy all files
 COPY . /app
 
-# Install PHP dependencies
 RUN cd backend && composer update --no-dev --optimize-autoloader
 
-# Install Node dependencies and build
 RUN cd backend && rm -rf node_modules package-lock.json && npm install
 RUN cd backend && npm run build || true
 
-# Generate .env file if it doesn't exist
 RUN cd backend && if [ ! -f .env ]; then cp .env.example .env; fi
-
-# Generate APP_KEY
 RUN cd backend && php artisan key:generate --force
 
-# Create Laravel folders and set permissions
 RUN cd backend \
     && mkdir -p storage/framework/sessions \
     && mkdir -p storage/framework/views \
@@ -63,10 +55,6 @@ RUN cd backend \
     && chmod -R 775 storage \
     && chmod -R 775 bootstrap/cache
 
-# Set working directory to backend
 WORKDIR /app/backend
 
 EXPOSE 8000
-
-ENTRYPOINT ["bash", "-c"]
-CMD ["php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
