@@ -68,4 +68,5 @@ WORKDIR /app/backend
 
 EXPOSE 8000
 
-CMD ["/bin/sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+ENTRYPOINT ["bash", "-c"]
+CMD ["php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
